@@ -1,9 +1,31 @@
-import { Router } from 'express'
-import { z } from 'zod'
-import { load } from '../lib/db.js'
-import { sign, auth } from '../middleware/auth.js'
-const r = Router()
-const login=z.object({ email:z.string().email(), password:z.string().min(3) })
-r.post('/login',(req,res)=>{ const parsed=login.safeParse(req.body); if(!parsed.success){ const issues=parsed.error.issues?.map(i=>({path:i.path,message:i.message,code:i.code})); return res.status(400).json({error:{code:'INVALID_BODY',message:'Credenciais inválidas',issues}})} const db=load(); const u=db.users.find(x=>x.email===parsed.data.email && x.password===parsed.data.password); if(!u) return res.status(401).json({error:{code:'UNAUTHORIZED',message:'Usuário ou senha inválidos'}}); const token=sign({ sub:u.id, email:u.email, role:u.role, name:u.name }); res.json({ token }) })
-r.get('/me', auth, (req,res)=>{ res.json({ user:(req as any).user }) })
-export default r
+import { Router, Request, Response } from "express";
+import jwt from "jsonwebtoken";
+
+const router = Router();
+
+type User = { id: string; email: string; password?: string };
+
+/** POST /auth/login – login simples (stub) */
+router.post("/login", (req: Request, res: Response) => {
+  const { email, password } = req.body ?? {};
+  const user: User | null =
+    email === "admin@admin.com" ? { id: "1", email, password: "admin" } : null;
+
+  if (!user || user.password !== password) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET ?? "changeme", {
+    expiresIn: "1h",
+  });
+
+  res.json({ token });
+});
+
+/** GET /auth/me – retorna dados do usuário (stub) */
+router.get("/me", (_req: Request, res: Response) => {
+  // TODO: extrair user do token (middleware) e buscar no DB
+  res.json({ id: "1", email: "admin@admin.com", role: "admin" });
+});
+
+export default router;

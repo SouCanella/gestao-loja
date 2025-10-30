@@ -1,26 +1,29 @@
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import swagger from '@fastify/swagger';
-import swaggerUI from '@fastify/swagger-ui';
-import { productsRoutes } from './routes/products.js';
+import express from "express";
+import cors from "cors";
+import morgan from "morgan";
 
-const app = Fastify({ logger: true });
+import productsRoutes from "./routes/products.js";
+import configRoutes from "./routes/config.js";
+import ordersRoutes from "./routes/orders.js";
+import authRoutes from "./routes/auth.js";
+import { errorHandler } from "./middleware/error.js";
 
-await app.register(cors, { origin: true });
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(morgan("dev"));
 
-await app.register(swagger, {
-  openapi: {
-    info: { title: 'Loja Controle API', version: '1.0.0' }
-  }
-});
-await app.register(swaggerUI, { routePrefix: '/docs' });
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
-app.get('/health', async () => ({ ok: true }));
+app.use("/products", productsRoutes);
+app.use("/config", configRoutes);
+app.use("/orders", ordersRoutes);
+app.use("/auth", authRoutes);
 
-await app.register(productsRoutes, { prefix: '/products' });
+// middleware final de erro
+app.use(errorHandler);
 
-const port = Number(process.env.PORT || 3001);
-app.listen({ port, host: '0.0.0.0' }).catch((err) => {
-  app.log.error(err);
-  process.exit(1);
+const PORT = Number(process.env.PORT ?? 3001);
+app.listen(PORT, () => {
+  console.log(`API listening on :${PORT}`);
 });
