@@ -1,0 +1,10 @@
+import { Router } from 'express'
+import { z } from 'zod'
+import { load, save, type Order } from '../lib/db.js'
+import { uid } from '../lib/util.js'
+const r = Router()
+r.get('/', (req,res)=>{ const db=load(); const limit=Math.min(parseInt(String((req.query as any).limit??'50')),100); const offset=Math.max(parseInt(String((req.query as any).offset??'0')),0); const items=db.orders.slice(offset,offset+limit); res.json({items, meta:{total:db.orders.length, limit, offset}})})
+const order=z.object({ items:z.array(z.object({ productId:z.string().min(1), qty:z.number().int().positive(), price:z.number().nonnegative() })).min(1) })
+r.post('/', (req,res)=>{ const parsed=order.safeParse(req.body); if(!parsed.success){ const issues=parsed.error.issues?.map(i=>({path:i.path,message:i.message,code:i.code})); return res.status(400).json({error:{code:'INVALID_BODY',message:'Corpo inválido',issues}})} const db=load(); const o:Order={ id:uid('o'), createdAt:new Date().toISOString(), status:'open', items:parsed.data.items }; db.orders.push(o); save(db); res.status(201).json(o) })
+r.patch('/:id', (req,res)=>{ const id=req.params.id; const patch=z.object({ status:z.enum(['open','paid','cancelled']).optional(), items:z.array(z.object({ productId:z.string(), qty:z.number().int().positive(), price:z.number().nonnegative() })).optional() }).refine(d=>Object.keys(d).length>0,{message:'Patch vazio'}); const parsed=patch.safeParse(req.body); if(!parsed.success){ const issues=parsed.error.issues?.map(i=>({path:i.path,message:i.message,code:i.code})); return res.status(400).json({error:{code:'INVALID_BODY',message:'Corpo inválido',issues}})} const db=load(); const o=db.orders.find(x=>x.id===id); if(!o) return res.status(404).json({error:{code:'NOT_FOUND',message:'Pedido não encontrado'}}); Object.assign(o, parsed.data); save(db); res.json(o) })
+export default r

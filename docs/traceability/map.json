@@ -1,13 +1,82 @@
 {
-  "sprint": "Sprint 1",
+  "project": "Loja Controle",
+  "sprintActive": "Sprint 1",
   "generatedAt": "2025-10-30",
+  "policies": {
+    "idSuffixPolicy": "TAPI-* must end with -VERB-STATUS (e.g., -POST-201). TFRONT-* should end with -OK or error code when applicable.",
+    "restPolicy": "Use REST strict resource paths: PATCH /resource/{id}. Bulk operations must use a separate /resource/bulk path.",
+    "errorSchema": "All error responses should follow { message: string, issues?: string[] } with 400/401/403/404/409."
+  },
+  "sprints": [
+    {
+      "id": "Sprint 0",
+      "status": "Done",
+      "notes": [
+        "Protótipos entregues (Loja/Admin).",
+        "Decisões em ADRs registradas."
+      ]
+    },
+    {
+      "id": "Sprint 1",
+      "status": "In Progress",
+      "notes": [
+        "APIs P0 adicionadas.",
+        "Rastreabilidade consolidada.",
+        "CI informativo iniciado."
+      ]
+    }
+  ],
   "reqs": [
+    {
+      "id": "PROTO-LOJA",
+      "type": "prototype",
+      "title": "Protótipo público da Loja (HTML/CSS/JS)",
+      "summary": "Experiência de compra com catálogo, busca, filtros, carrinho e checkout via WhatsApp.",
+      "priority": "P0",
+      "status": "Done (Sprint 0)",
+      "owner": "Frontend",
+      "dependencies": [],
+      "apis": [],
+      "tests": {
+        "api": [],
+        "front": [
+          "TFRONT-PROTO-LOJA-NAVEGACAO-OK",
+          "TFRONT-PROTO-LOJA-CHECKOUT-OK"
+        ]
+      },
+      "docs": [
+        "loja_prototipo.html",
+        "docs/sprint-0-summary.md"
+      ]
+    },
+    {
+      "id": "PROTO-ADMIN",
+      "type": "prototype",
+      "title": "Protótipo do Painel Administrativo (HTML/CSS/JS)",
+      "summary": "Admin com módulos: Produtos, Insumos, Receitas, Produção, Pedidos, Clientes e Avaliações (persistência local).",
+      "priority": "P0",
+      "status": "Done (Sprint 0)",
+      "owner": "Frontend",
+      "dependencies": [],
+      "apis": [],
+      "tests": {
+        "api": [],
+        "front": [
+          "TFRONT-PROTO-ADMIN-PRODUTOS-OK",
+          "TFRONT-PROTO-ADMIN-RECEITAS-OK"
+        ]
+      },
+      "docs": [
+        "admin_prototipo.html",
+        "docs/sprint-0-summary.md"
+      ]
+    },
     {
       "id": "REQ-001",
       "title": "Persistência de Configuração (Admin ↔ Loja)",
       "summary": "Criar e consumir API de configuração para substituir localStorage no admin/loja.",
       "priority": "P0",
-      "status": "Planned",
+      "status": "In Progress",
       "owner": "Backend",
       "dependencies": [],
       "apis": [
@@ -43,7 +112,7 @@
       "title": "Produtos: Catálogo com CSV e Estoque",
       "summary": "Expor catálogo via API; manter import/export CSV no admin, consumido pela loja.",
       "priority": "P0",
-      "status": "Planned",
+      "status": "In Progress",
       "owner": "Backend",
       "dependencies": [
         "REQ-001"
@@ -80,6 +149,7 @@
       },
       "docs": [
         "backend/docs/openapi.yaml#paths./products",
+        "backend/docs/openapi.yaml#paths./products/bulk",
         "docs/sprint-1-plan.md#req-002"
       ]
     },
@@ -212,7 +282,7 @@
       "title": "Pedidos (Checkout e Status)",
       "summary": "API para pedidos com itens, desconto, total; integra com loja pública e admin.",
       "priority": "P0",
-      "status": "Planned",
+      "status": "In Progress",
       "owner": "Backend",
       "dependencies": [
         "REQ-001",
@@ -336,10 +406,10 @@
     },
     {
       "id": "REQ-009",
-      "title": "Autenticação Simples (Perfis Admin/Operacional/Financeiro)",
+      "title": "Autenticação Simples (Perfis)",
       "summary": "Implementar auth simples e perfis; restringir ações no admin conforme perfil.",
       "priority": "P0",
-      "status": "Planned",
+      "status": "In Progress",
       "owner": "Backend",
       "dependencies": [
         "REQ-001"
@@ -368,7 +438,8 @@
         ]
       },
       "docs": [
-        "backend/docs/openapi.yaml#paths./auth",
+        "backend/docs/openapi.yaml#paths./auth/login",
+        "backend/docs/openapi.yaml#paths./auth/me",
         "docs/sprint-1-plan.md#req-009"
       ]
     },
@@ -395,11 +466,5 @@
         "docs/sprint-1-plan.md#req-010"
       ]
     }
-  ],
-  "notes": [
-    "Todas as APIs devem ser documentadas em backend/docs/openapi.yaml (OpenAPI válido).",
-    "QA deve cobrir TAPI-* com 201/200/400/404/409 conforme aplicável.",
-    "Frontend deve manter TFRONT-* com cobertura ≥ 90%.",
-    "CPA aprova PR somente com rastreabilidade completa (map.json e matrix.md sincronizados)."
   ]
 }
