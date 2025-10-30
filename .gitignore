@@ -1,0 +1,14 @@
+# Node/TS
+node_modules/
+dist/
+coverage/
+*.log
+.env
+
+# Dados locais
+backend/data/*.json
+
+# SO/Editor
+.DS_Store
+Thumbs.db
+.vscode/

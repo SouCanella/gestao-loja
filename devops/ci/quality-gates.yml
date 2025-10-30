@@ -1,0 +1,8 @@
+quality_gates:
+  api_coverage_line: 95
+  api_coverage_branch: 95
+  frontend_coverage_line: 90
+  frontend_coverage_branch: 90
+  e2e_required_suites:
+    - loja_smoke
+    - admin_core
