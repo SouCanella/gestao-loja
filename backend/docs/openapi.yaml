@@ -1,56 +1,67 @@
 openapi: 3.0.3
 info:
-  title: Loja Controle API
-  version: 1.0.0-sprint1
-  description: OpenAPI inicial para Sprint 1 (P0) — paths mínimos para integração
-    Admin ↔ Loja.
+  title: Loja Controle • Backend P0
+  version: 1.0.0
+  description: API P0 para integração Admin ↔ Loja.
+servers:
+  - url: http://localhost:4000
 paths:
   /config:
     get:
-      summary: Get store config
+      summary: Obter configuração da loja
       operationId: getConfig
+      tags: [Config]
       responses:
         '200':
-          description: ok
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StoreConfig'
+                $ref: '#/components/schemas/Config'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
     post:
-      summary: Save store config
-      operationId: saveConfig
+      summary: Definir/atualizar configuração
+      operationId: setConfig
+      tags: [Config]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StoreConfig'
+              $ref: '#/components/schemas/Config'
       responses:
         '201':
-          description: created
+          description: Criado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StoreConfig'
+                $ref: '#/components/schemas/Config'
         '400':
-          description: invalid body
+          $ref: '#/components/responses/ErrorResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /products:
     get:
-      summary: List products
+      summary: Listar produtos
       operationId: listProducts
+      tags: [Products]
       responses:
         '200':
-          description: ok
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Product'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /products/bulk:
     post:
-      summary: Create/Update products in bulk
-      operationId: createOrUpdateProducts
+      summary: Criar/atualizar produtos em lote
+      operationId: upsertProductsBulk
+      tags: [Products]
       requestBody:
         required: true
         content:
@@ -61,13 +72,38 @@ paths:
                 $ref: '#/components/schemas/Product'
       responses:
         '201':
-          description: created
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
         '400':
-          description: invalid body
+          $ref: '#/components/responses/ErrorResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /orders:
+    get:
+      summary: Listar pedidos
+      operationId: listOrders
+      tags: [Orders]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
     post:
-      summary: Create order
+      summary: Criar pedido
       operationId: createOrder
+      tags: [Orders]
       requestBody:
         required: true
         content:
@@ -76,34 +112,26 @@ paths:
               $ref: '#/components/schemas/OrderCreate'
       responses:
         '201':
-          description: created
+          description: Criado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
         '400':
-          description: invalid body
-    get:
-      summary: List orders
-      operationId: listOrders
-      responses:
-        '200':
-          description: ok
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Order'
+          $ref: '#/components/responses/ErrorResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /orders/{id}:
     patch:
-      summary: Update order
-      operationId: updateOrder
+      summary: Atualizar parcialmente um pedido
+      operationId: patchOrder
+      tags: [Orders]
       parameters:
-      - name: id
-        in: query
-        schema:
-          type: string
-        required: true
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -112,47 +140,71 @@ paths:
               $ref: '#/components/schemas/OrderPatch'
       responses:
         '200':
-          description: ok
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
         '404':
-          description: not found
+          $ref: '#/components/responses/ErrorResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /auth/login:
     post:
       summary: Login
       operationId: login
+      tags: [Auth]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
       responses:
         '200':
-          description: ok
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                type: object
+                properties:
+                  token:
+                    type: string
         '400':
-          description: invalid credentials
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /auth/me:
     get:
-      summary: Current user
+      summary: Perfil do usuário autenticado
       operationId: me
+      tags: [Auth]
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: ok
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MeResponse'
+                type: object
+                properties:
+                  user:
+                    type: object
         '401':
-          description: unauthorized
-      security:
-      - bearerAuth: []
+          $ref: '#/components/responses/ErrorResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -160,130 +212,96 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    StoreConfig:
+    Error:
       type: object
       properties:
-        lojaNome:
-          type: string
-        heroTitulo:
-          type: string
-        heroSub:
-          type: string
-        rodape:
-          type: string
-        whatsapp:
-          type: string
-        msgWhatsapp:
-          type: string
-        tema:
+        error:
           type: object
           properties:
-            prim:
-              type: string
-            sec:
-              type: string
-      additionalProperties: true
+            code: { type: string }
+            message: { type: string }
+            details: {}
+    Config:
+      type: object
+      required: [storeName, currency, whatsappNumber]
+      properties:
+        storeName: { type: string }
+        currency: { type: string }
+        whatsappNumber: { type: string }
+        theme:
+          type: object
+          additionalProperties: { type: string }
+        logoUrl: { type: string, format: uri }
+        businessHours:
+          type: array
+          items:
+            type: object
+            properties:
+              day: { type: string }
+              open: { type: string }
+              close: { type: string }
+        deliveryAreas:
+          type: array
+          items: { type: string }
+        paymentMethods:
+          type: array
+          items: { type: string }
     Product:
       type: object
       properties:
-        id:
-          type: string
-        nome:
-          type: string
-        categoria:
-          type: string
-        descricao:
-          type: string
-        preco:
-          type: number
-        estoque:
-          type: integer
-        custo:
-          type: number
-        imagens:
-          type: array
-          items:
-            type: string
-      required:
-      - nome
-      - preco
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, minimum: 0 }
+        category: { type: string }
+        available: { type: boolean }
+        rating: { type: number, minimum: 0, maximum: 5 }
+      required: [name, price]
     OrderItem:
       type: object
       properties:
-        prodId:
+        productId: { type: string }
+        qty: { type: integer, minimum: 1 }
+        price: { type: number, minimum: 0 }
+      required: [productId, qty, price]
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        createdAt: { type: string, format: date-time }
+        status:
           type: string
-        qtd:
-          type: integer
-        preco:
-          type: number
-      required:
-      - prodId
-      - qtd
-      - preco
+          enum: [open, paid, cancelled]
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderItem' }
+      required: [id, createdAt, status, items]
     OrderCreate:
       type: object
       properties:
-        clienteId:
-          type: string
-        itens:
+        items:
           type: array
-          items:
-            $ref: '#/components/schemas/OrderItem'
-        desconto:
-          type: number
-      required:
-      - itens
+          items: { $ref: '#/components/schemas/OrderItem' }
+      required: [items]
     OrderPatch:
       type: object
       properties:
         status:
           type: string
-          enum:
-          - aberto
-          - pago
-          - cancelado
-        desconto:
-          type: number
-    Order:
-      allOf:
-      - $ref: '#/components/schemas/OrderCreate'
-      - type: object
-        properties:
-          id:
-            type: string
-          data:
-            type: string
-            format: date-time
-          total:
-            type: number
-    LoginRequest:
-      type: object
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-      required:
-      - username
-      - password
-    LoginResponse:
-      type: object
-      properties:
-        access_token:
-          type: string
-        token_type:
-          type: string
-          example: Bearer
-    MeResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        role:
-          type: string
-          enum:
-          - admin
-          - operational
-          - finance
+          enum: [open, paid, cancelled]
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderItem' }
+  responses:
+    ErrorResponse:
+      description: Erro padrão
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+security: []
+tags:
+  - name: Config
+  - name: Products
+  - name: Orders
+  - name: Auth

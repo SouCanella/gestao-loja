@@ -1,0 +1,81 @@
+{
+  "REQ-001": {
+    "summary": "Config endpoint",
+    "paths": [
+      "GET /config",
+      "POST /config"
+    ],
+    "code": [
+      "backend/src/routes/config.ts",
+      "backend/src/middleware/error.ts",
+      "backend/src/lib/db.ts"
+    ],
+    "tests": [
+      "backend/tests/api.spec.ts"
+    ],
+    "openapi": [
+      "backend/docs/openapi.yaml#/paths/~1config"
+    ]
+  },
+  "REQ-002": {
+    "summary": "Products list & bulk upsert",
+    "paths": [
+      "GET /products",
+      "POST /products/bulk"
+    ],
+    "code": [
+      "backend/src/routes/products.ts",
+      "backend/src/middleware/error.ts",
+      "backend/src/lib/db.ts",
+      "backend/src/lib/util.ts"
+    ],
+    "tests": [
+      "backend/tests/api.spec.ts"
+    ],
+    "openapi": [
+      "backend/docs/openapi.yaml#/paths/~1products",
+      "backend/docs/openapi.yaml#/paths/~1products~1bulk"
+    ]
+  },
+  "REQ-006": {
+    "summary": "Orders create/list/patch",
+    "paths": [
+      "POST /orders",
+      "GET /orders",
+      "PATCH /orders/{id}"
+    ],
+    "code": [
+      "backend/src/routes/orders.ts",
+      "backend/src/middleware/error.ts",
+      "backend/src/lib/db.ts",
+      "backend/src/lib/util.ts"
+    ],
+    "tests": [
+      "backend/tests/api.spec.ts"
+    ],
+    "openapi": [
+      "backend/docs/openapi.yaml#/paths/~1orders",
+      "backend/docs/openapi.yaml#/paths/~1orders~1{id}"
+    ]
+  },
+  "REQ-009": {
+    "summary": "Auth login/me",
+    "paths": [
+      "POST /auth/login",
+      "GET /auth/me"
+    ],
+    "code": [
+      "backend/src/routes/auth.ts",
+      "backend/src/middleware/auth.ts",
+      "backend/src/middleware/error.ts",
+      "backend/src/lib/db.ts"
+    ],
+    "tests": [
+      "backend/tests/api.spec.ts"
+    ],
+    "openapi": [
+      "backend/docs/openapi.yaml#/paths/~1auth~1login",
+      "backend/docs/openapi.yaml#/paths/~1auth~1me"
+    ]
+  }
+}

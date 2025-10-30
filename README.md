@@ -76,3 +76,33 @@ Checklist mínimo no arquivo [`docs/handbook/seguranca.md`](docs/handbook/segura
 
 **Fase 3 — Escala**
 - Pagamentos, automações e analytics avançado
+
+
+# Gestão Loja — Backend (Sprint 1)
+
+Endpoints P0 + OpenAPI, testes e rastreabilidade.
+
+## Scripts
+- `npm run dev` — iniciar API com hot-reload
+- `npm run build` — compilar TS
+- `npm start` — iniciar buildado
+- `npm run test` — vitest + supertest com cobertura
+- `npm run lint:openapi` — valida OpenAPI (Redocly)
+- `npm run ci` — build + test + lint OpenAPI
+
+## Estrutura
+```
+backend/
+  src/
+    lib/
+    middleware/
+    routes/
+    index.ts
+  docs/openapi.yaml
+  tests/
+docs/
+  traceability/
+    map.json
+    matrix.md
+.github/workflows/ci.yml
+```

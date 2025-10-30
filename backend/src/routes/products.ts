@@ -1,57 +1,40 @@
-import { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
+import { Router } from 'express'
+import { z } from 'zod'
+import { load, save, type Product } from '../lib/db.js'
+import { uid } from '../lib/util.js'
 
-const prisma = new PrismaClient();
+const router = Router()
 
-const productBody = z.object({
+router.get('/', (_req, res)=>{
+  const db = load()
+  res.json(db.products)
+})
+
+const productSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
+  price: z.number().nonnegative(),
   category: z.string().optional(),
-  price: z.coerce.number().nonnegative(),
-  cost: z.coerce.number().nonnegative(),
-  stock: z.coerce.number().int().nonnegative().default(0)
-});
+  available: z.boolean().optional(),
+  rating: z.number().min(0).max(5).optional()
+})
 
-export async function productsRoutes(app: FastifyInstance) {
-  app.get('/', async () => {
-    const items = await prisma.product.findMany({ orderBy: { createdAt: 'desc' } });
-    return items;
-  });
+router.post('/bulk', (req, res)=>{
+  const arr = z.array(productSchema).safeParse(req.body)
+  if(!arr.success){
+    return res.status(400).json({ error: { code:'INVALID_BODY', message:'Lista inválida', details: arr.error.flatten() } })
+  }
+  const db = load()
+  const incoming = arr.data as Product[]
+  for (const p of incoming){
+    if(!p.id) p.id = uid('p')
+    const idx = db.products.findIndex(x=>x.id===p.id)
+    if(idx>=0) db.products[idx] = { ...db.products[idx], ...p }
+    else db.products.push(p)
+  }
+  save(db)
+  res.status(201).json({ count: incoming.length })
+})
 
-  app.get('/:id', async (req, reply) => {
-    const id = (req.params as any).id as string;
-    const item = await prisma.product.findUnique({ where: { id } });
-    if (!item) return reply.code(404).send({ message: 'Product not found' });
-    return item;
-  });
-
-  app.post('/', async (req, reply) => {
-    const parsed = productBody.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ message: 'Invalid body', issues: parsed.error.flatten() });
-    const created = await prisma.product.create({ data: parsed.data });
-    return reply.code(201).send(created);
-  });
-
-  app.put('/:id', async (req, reply) => {
-    const id = (req.params as any).id as string;
-    const parsed = productBody.partial().safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ message: 'Invalid body', issues: parsed.error.flatten() });
-    try {
-      const updated = await prisma.product.update({ where: { id }, data: parsed.data });
-      return updated;
-    } catch {
-      return reply.code(404).send({ message: 'Product not found' });
-    }
-  });
-
-  app.delete('/:id', async (req, reply) => {
-    const id = (req.params as any).id as string;
-    try {
-      await prisma.product.delete({ where: { id } });
-      return reply.code(204).send();
-    } catch {
-      return reply.code(404).send({ message: 'Product not found' });
-    }
-  });
-}
+export default router
