@@ -1,33 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
 import { load } from '../lib/db.js'
 import { sign, auth } from '../middleware/auth.js'
-
-const router = Router()
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(3)
-})
-
-router.post('/login', async (req, res)=>{
-  const parsed = loginSchema.safeParse(req.body)
-  if(!parsed.success){
-    return res.status(400).json({ error: { code:'INVALID_BODY', message:'Credenciais inválidas', details: parsed.error.flatten() } })
-  }
-  const db = load()
-  const user = db.users.find(u=>u.email===parsed.data.email)
-  if(!user) return res.status(401).json({ error: { code:'UNAUTHORIZED', message:'Usuário ou senha inválidos' } })
-  const ok = await bcrypt.compare(parsed.data.password, user.passwordHash)
-  if(!ok) return res.status(401).json({ error: { code:'UNAUTHORIZED', message:'Usuário ou senha inválidos' } })
-  const token = sign({ sub: user.id, email: user.email, role: user.role, name: user.name })
-  res.json({ token })
-})
-
-router.get('/me', auth, (req, res)=>{
-  const u = (req as any).user
-  res.json({ user: u })
-})
-
-export default router
+const r = Router()
+const login=z.object({ email:z.string().email(), password:z.string().min(3) })
+r.post('/login',(req,res)=>{ const parsed=login.safeParse(req.body); if(!parsed.success){ const issues=parsed.error.issues?.map(i=>({path:i.path,message:i.message,code:i.code})); return res.status(400).json({error:{code:'INVALID_BODY',message:'Credenciais inválidas',issues}})} const db=load(); const u=db.users.find(x=>x.email===parsed.data.email && x.password===parsed.data.password); if(!u) return res.status(401).json({error:{code:'UNAUTHORIZED',message:'Usuário ou senha inválidos'}}); const token=sign({ sub:u.id, email:u.email, role:u.role, name:u.name }); res.json({ token }) })
+r.get('/me', auth, (req,res)=>{ res.json({ user:(req as any).user }) })
+export default r
