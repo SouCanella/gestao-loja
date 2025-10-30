@@ -106,3 +106,9 @@ docs/
     matrix.md
 .github/workflows/ci.yml
 ```
+
+## Ambiente
+Crie um arquivo `.env`:
+JWT_SECRET=um-segredo-seguro
+PORT=4000
+NODE_ENV=development
