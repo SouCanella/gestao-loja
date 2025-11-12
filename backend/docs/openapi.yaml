@@ -1,9 +1,13 @@
 openapi: 3.0.3
-info: { title: Loja Controle • Backend P0, version: 1.0.1 }
-servers: [ { url: http://localhost:4000 } ]
+info:
+  title: Loja Controle — Backend P0
+  version: 1.1.0
+servers:
+  - url: http://localhost:3001
 paths:
   /products:
     get:
+      summary: Listar produtos
       tags: [Products]
       parameters:
         - in: query
@@ -27,12 +31,22 @@ paths:
                       total: { type: integer }
                       limit: { type: integer }
                       offset: { type: integer }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
   /products/bulk:
     post:
+      summary: Upsert em lote
       tags: [Products]
       requestBody:
         required: true
-        content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Product' } } } }
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/Product' }
       responses:
         '201':
           description: Created
@@ -44,8 +58,27 @@ paths:
                   count: { type: integer }
                   inserted: { type: integer }
                   updated: { type: integer }
+        '400': { $ref: '#/components/responses/Error' }
+  /config:
+    get:
+      summary: Obter configuração
+      tags: [Config]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+    post:
+      summary: Salvar configuração
+      tags: [Config]
+      responses:
+        '201': { description: Created }
+        '400': { $ref: '#/components/responses/Error' }
   /orders:
     get:
+      summary: Listar pedidos
       tags: [Orders]
       parameters:
         - in: query
@@ -69,8 +102,15 @@ paths:
                       total: { type: integer }
                       limit: { type: integer }
                       offset: { type: integer }
+    post:
+      summary: Criar pedido
+      tags: [Orders]
+      responses:
+        '201': { description: Created }
+        '400': { $ref: '#/components/responses/Error' }
   /orders/{id}:
     patch:
+      summary: Atualizar pedido (Admin)
       tags: [Orders]
       parameters:
         - in: path
@@ -79,10 +119,104 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: OK }
-        '400': { description: Bad Request }
-        '404': { description: Not Found }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /auth/login:
+    post:
+      summary: Autenticação
+      tags: [Auth]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  tokenType: { type: string, example: Bearer }
+                  expiresIn: { type: integer, example: 86400 }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/me:
+    get:
+      summary: Perfil autenticado
+      tags: [Auth]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  email: { type: string }
+                  role: { type: string }
+        '401': { $ref: '#/components/responses/Error' }
+
 components:
   schemas:
-    Product: { type: object, properties: { id: {type:string}, name:{type:string}, price:{type:number} }, required: [name, price] }
-    OrderItem: { type: object, properties: { productId:{type:string}, qty:{type:integer}, price:{type:number} }, required:[productId, qty, price] }
-    Order: { type: object, properties: { id:{type:string}, createdAt:{type:string}, status:{type:string}, items:{ type:array, items:{ $ref:'#/components/schemas/OrderItem' } } }, required:[id, createdAt, status, items] }
+    Product:
+      type: object
+      required: [name, price, cost, stock]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        price: { type: number, minimum: 0 }
+        cost: { type: number, minimum: 0 }
+        stock: { type: integer, minimum: 0 }
+        category: { type: string }
+        active: { type: boolean }
+    OrderItem:
+      type: object
+      required: [productId, name, qty, unitPrice, subtotal]
+      properties:
+        productId: { type: string }
+        name: { type: string }
+        qty: { type: integer, minimum: 1 }
+        unitPrice: { type: number, minimum: 0 }
+        subtotal: { type: number, minimum: 0 }
+    Order:
+      type: object
+      required: [id, status, items, total, createdAt]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [open, paid, cancelled] }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderItem' }
+        total: { type: number, minimum: 0 }
+        channel: { type: string }
+        createdAt: { type: string, format: date-time }
+    Config:
+      type: object
+      required: [storeName, currency, whatsappNumber]
+      properties:
+        storeName: { type: string }
+        currency: { type: string }
+        whatsappNumber: { type: string }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string }
+                  message: { type: string }
+                  issues:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path: { type: array, items: { type: string } }
+                        message: { type: string }
+                        code: { type: string }

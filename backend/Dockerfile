@@ -1,38 +1,33 @@
-# ---------- build stage ----------
-FROM node:20-alpine AS build
+# Base comum
+FROM node:20-slim AS base
 WORKDIR /app
 
-# 1) Instala dependências (SEM exigir package-lock)
-COPY package*.json ./
-RUN npm install
-
-# 2) Copia fontes
-COPY tsconfig.json ./tsconfig.json
-COPY src ./src
-# Se usar Prisma, copie o schema
+# ---------- DEV (hot reload, devDeps, fontes) ----------
+FROM base AS dev
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY tsconfig.json vitest.config.* ./
 COPY prisma ./prisma
+RUN npx prisma generate
+# inclui fontes e testes no estágio dev
+COPY src ./src
+COPY tests ./tests
+CMD ["npm","run","dev"]
 
-# 3) Gera cliente do ORM (se existir)
-RUN npx prisma generate || true
-
-# 4) Compila TypeScript
+# ---------- TEST (build + testes + coverage em /out) ----------
+FROM dev AS test
 RUN npm run build
 
-# 5) Remove devDependencies para levar só runtime
-RUN npm prune --omit=dev
+# ---------- PROD DEPS (apenas runtime) ----------
+FROM base AS prod-deps
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
 
-# ---------- runtime stage ----------
-FROM node:20-alpine AS runtime
-WORKDIR /app
+# ---------- PROD (mínimo) ----------
+FROM base AS prod
 ENV NODE_ENV=production
-
-# 6) Copia apenas o necessário do build
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma
-
-EXPOSE 3001
-
-# 7) Aplica migrações e inicia o server
-CMD ["sh", "-c", "npx prisma migrate deploy || true && node dist/server.js"]
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY prisma ./prisma
+COPY dist ./dist
+CMD sh -c "npx prisma migrate deploy || true; node dist/server.js"

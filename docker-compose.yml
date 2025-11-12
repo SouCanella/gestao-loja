@@ -1,51 +1,76 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: gestao-loja-db
     environment:
-      POSTGRES_DB: gestao_loja
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - dbdata:/var/lib/postgresql/data
+      POSTGRES_DB: gestao_loja
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d gestao_loja"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 10
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    ports: ["5432:5432"]
 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: gestao-loja-backend
-    env_file:
-      - ./backend/.env
+      target: prod
     environment:
-      NODE_ENV: "production"
-      # Se preferir por aqui:
-      # DATABASE_URL: "postgresql://postgres:postgres@db:5432/gestao_loja?schema=public"
-      # PORT: "3001"
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/gestao_loja?schema=public
+      PORT: 3001
+      JWT_SECRET: change_me
+      JWT_EXPIRES_IN: 1d
     depends_on:
       db:
         condition: service_healthy
+    ports: ["3001:3001"]
+
+  backend-dev:
+    build:
+      context: ./backend
+      target: dev
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/gestao_loja?schema=public
+      PORT: 3001
+      JWT_SECRET: change_me
+      JWT_EXPIRES_IN: 1d
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: npm run dev
     ports:
-      - "3001:3001"
+      - "3002:3001"
+
+  backend-test:
+    build:
+      context: ./backend
+      target: test
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/gestao_loja?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./reports/coverage:/out
+    command: ["bash","-lc","npm test && ( [ -d coverage ] && cp -r coverage /out/ || true )"]
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: gestao-loja-frontend
     environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:3001"
-      NODE_ENV: "production"
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      PORT: 3000
     depends_on:
-      - backend
-    ports:
-      - "3000:3000"
+      backend:
+        condition: service_started
+    volumes:
+      - ./frontend:/app
+    ports: ["3000:3000"]
 
 volumes:
   dbdata:

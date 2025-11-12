@@ -1,17 +1,33 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
+import type { Request, Response } from "express";
+import { z } from 'zod'
 
-const router = Router();
+const router = Router()
 
-/** GET /products – lista simples (mock) */
-router.get("/", (_req: Request, res: Response) => {
-  res.json([{ id: 1, name: "Sacolé Morango", price: 7.5 }]);
-});
+const productSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1),
+  price: z.number().nonnegative(),
+  cost: z.number().nonnegative(),
+  stock: z.number().int().nonnegative(),
+  category: z.string().optional(),
+  active: z.boolean().optional()
+})
 
-/** POST /products/bulk – cria em lote (stub) */
-router.post("/bulk", (req: Request, res: Response) => {
-  const items = Array.isArray(req.body) ? req.body : [];
-  // TODO: persistir no DB
-  res.status(201).json({ created: items.length });
-});
+router.get('/', (req, res) => {
+  const limit = Math.min(parseInt(String((req.query as any).limit ?? '50')), 100)
+  const offset = Math.max(parseInt(String((req.query as any).offset ?? '0')), 0)
+  return res.json({ items: [], meta: { total: 0, limit, offset } })
+})
 
-export default router;
+router.post('/bulk', (req, res) => {
+  const parsed = z.array(productSchema).safeParse(req.body)
+  if (!parsed.success) {
+    const issues = parsed.error.issues?.map(i => ({ path: i.path, message: i.message, code: i.code }))
+    return res.status(400).json({ error: { code:'INVALID_BODY', message:'Lista inválida', issues } })
+  }
+  const inserted = parsed.data.length
+  return res.status(201).json({ count: inserted, inserted, updated: 0 })
+})
+
+export default router

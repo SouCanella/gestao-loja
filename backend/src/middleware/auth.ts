@@ -1,18 +1,51 @@
-import type { Request, Response, NextFunction } from 'express'
-import jwt from 'jsonwebtoken'
-const SECRET = process.env.JWT_SECRET || 'dev-secret'
-export function sign(payload: object){ return jwt.sign(payload, SECRET, { expiresIn: '12h' }) }
-export function auth(req: Request, res: Response, next: NextFunction){
-  const h = req.headers.authorization || ''
-  const t = h.startsWith('Bearer ') ? h.slice(7) : ''
-  if(!t) return res.status(401).json({ error: { code:'UNAUTHORIZED', message:'Token ausente' } })
-  try{ (req as any).user = jwt.verify(t, SECRET); next() }catch{ return res.status(401).json({ error:{ code:'UNAUTHORIZED', message:'Token inválido' }}) }
+import type { Request, Response, NextFunction } from "express";
+import jwt, { SignOptions } from "jsonwebtoken";
+
+// Convenções
+const SECRET = process.env.JWT_SECRET || "change_me";
+const EXPIRES_IN_RAW = process.env.JWT_EXPIRES_IN || "1d";
+
+// Tipagem do usuário no token
+export type UserClaims = {
+  sub: string;
+  name: string;
+  role: "Admin" | "Operacional" | string;
+};
+
+// Em ESM + NodeNext, zere callback e use options
+const SIGN_OPTS: SignOptions = { expiresIn: EXPIRES_IN_RAW as SignOptions["expiresIn"] };
+
+// Gera token
+export function sign(payload: UserClaims): string {
+  return jwt.sign(payload, SECRET, SIGN_OPTS);
 }
-export function requireRole(...roles: Array<'Admin'|'Operacional'|'Financeiro'>){
-  return (req: Request, res: Response, next: NextFunction)=>{
-    const u:any = (req as any).user
-    if(!u) return res.status(401).json({ error:{ code:'UNAUTHORIZED', message:'Token ausente'}})
-    if(!roles.includes(u.role)) return res.status(403).json({ error:{ code:'FORBIDDEN', message:'Sem permissão'}})
-    next()
+
+// Autentica e popula req.user
+export function auth(req: Request, res: Response, next: NextFunction) {
+  const h = req.header("Authorization") || "";
+  const [schema, token] = h.split(" ");
+  if (schema !== "Bearer" || !token) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
+  try {
+    const decoded = jwt.verify(token, SECRET) as UserClaims;
+    // @ts-expect-error adição dinâmica
+    req.user = decoded;
+    return next();
+  } catch {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+}
+
+// Exige um dos papéis informados
+export function requireRole(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    // @ts-expect-error leitura dinâmica
+    const user = req.user as UserClaims | undefined;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (!roles.includes(user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    return next();
+  };
 }
