@@ -1,470 +1,94 @@
 {
   "project": "Loja Controle",
-  "sprintActive": "Sprint 1",
+  "sprint": "Sprint 1",
   "generatedAt": "2025-10-30",
-  "policies": {
-    "idSuffixPolicy": "TAPI-* must end with -VERB-STATUS (e.g., -POST-201). TFRONT-* should end with -OK or error code when applicable.",
-    "restPolicy": "Use REST strict resource paths: PATCH /resource/{id}. Bulk operations must use a separate /resource/bulk path.",
-    "errorSchema": "All error responses should follow { message: string, issues?: string[] } with 400/401/403/404/409."
+  "summary": "Rastreabilidade cumulativa (Sprint 0 + Sprint 1). Atualizada conforme entrega do backend e plano de produto.",
+  "reqs": {
+    "REQ-001": {
+      "description": "Como admin, quero autenticar e obter token para operar rotas protegidas",
+      "apis": ["POST /auth/login", "GET /auth/me"],
+      "tests": [
+        "backend/tests/integration/auth-login.spec.ts",
+        "backend/tests/integration/auth-me.spec.ts"
+      ]
+    },
+    "REQ-002": {
+      "description": "Como usuário autenticado, quero gerenciar pedidos",
+      "apis": ["POST /orders", "PATCH /orders/{id}", "GET /orders"],
+      "tests": [
+        "backend/tests/integration/orders.spec.ts",
+        "backend/tests/integration/auth-unauthorized.spec.ts"
+      ]
+    },
+    "REQ-003": {
+      "description": "Como admin, quero configurar dados da loja",
+      "apis": ["POST /config", "GET /config"],
+      "tests": ["backend/tests/integration/config.spec.ts"]
+    },
+    "REQ-004": {
+      "description": "Como visitante, quero consultar produtos e validar lote",
+      "apis": [
+        "GET /products",
+        "POST /products/bulk",
+        "POST /products/bulk/validate"
+      ],
+      "tests": [
+        "backend/tests/integration/products-bulk.spec.ts",
+        "backend/tests/integration/products-bulk-validate.spec.ts"
+      ]
+    },
+    "REQ-005": {
+      "description": "Como operador da plataforma, preciso de health-check",
+      "apis": ["GET /health"],
+      "tests": ["backend/tests/integration/health.spec.ts"]
+    },
+    "REQ-006": {
+      "description": "Como admin, quero controlar insumos e fornecedores com custo unitário",
+      "apis": [
+        "GET /ingredients",
+        "POST /ingredients"
+      ],
+      "tests": ["qa/features/ingredients.feature"]
+    },
+    "REQ-007": {
+      "description": "Como admin, quero cadastrar e versionar receitas, aplicando markup e perda",
+      "apis": [
+        "GET /recipes",
+        "POST /recipes",
+        "POST /recipes/{id}/version",
+        "POST /recipes/{id}/apply"
+      ],
+      "tests": ["qa/features/recipes.feature"]
+    },
+    "REQ-008": {
+      "description": "Como operador, quero registrar produção (baixa insumos / credita estoque)",
+      "apis": [
+        "POST /productions",
+        "GET /productions"
+      ],
+      "tests": ["qa/features/productions.feature"]
+    },
+    "REQ-009": {
+      "description": "Como admin, quero gerenciar clientes e histórico de pedidos com tags e status",
+      "apis": [
+        "GET /customers",
+        "POST /customers"
+      ],
+      "tests": ["qa/features/customers.feature"]
+    },
+    "REQ-010": {
+      "description": "Como admin, quero acompanhar cobertura de testes e relatórios de CI/CD",
+      "apis": [],
+      "tests": [
+        "devops/ci/test-pipeline.yml",
+        "reports/coverage/index.html"
+      ]
+    }
   },
-  "sprints": [
-    {
-      "id": "Sprint 0",
-      "status": "Done",
-      "notes": [
-        "Protótipos entregues (Loja/Admin).",
-        "Decisões em ADRs registradas."
-      ]
-    },
-    {
-      "id": "Sprint 1",
-      "status": "In Progress",
-      "notes": [
-        "APIs P0 adicionadas.",
-        "Rastreabilidade consolidada.",
-        "CI informativo iniciado."
-      ]
-    }
-  ],
-  "reqs": [
-    {
-      "id": "PROTO-LOJA",
-      "type": "prototype",
-      "title": "Protótipo público da Loja (HTML/CSS/JS)",
-      "summary": "Experiência de compra com catálogo, busca, filtros, carrinho e checkout via WhatsApp.",
-      "priority": "P0",
-      "status": "Done (Sprint 0)",
-      "owner": "Frontend",
-      "dependencies": [],
-      "apis": [],
-      "tests": {
-        "api": [],
-        "front": [
-          "TFRONT-PROTO-LOJA-NAVEGACAO-OK",
-          "TFRONT-PROTO-LOJA-CHECKOUT-OK"
-        ]
-      },
-      "docs": [
-        "loja_prototipo.html",
-        "docs/sprint-0-summary.md"
-      ]
-    },
-    {
-      "id": "PROTO-ADMIN",
-      "type": "prototype",
-      "title": "Protótipo do Painel Administrativo (HTML/CSS/JS)",
-      "summary": "Admin com módulos: Produtos, Insumos, Receitas, Produção, Pedidos, Clientes e Avaliações (persistência local).",
-      "priority": "P0",
-      "status": "Done (Sprint 0)",
-      "owner": "Frontend",
-      "dependencies": [],
-      "apis": [],
-      "tests": {
-        "api": [],
-        "front": [
-          "TFRONT-PROTO-ADMIN-PRODUTOS-OK",
-          "TFRONT-PROTO-ADMIN-RECEITAS-OK"
-        ]
-      },
-      "docs": [
-        "admin_prototipo.html",
-        "docs/sprint-0-summary.md"
-      ]
-    },
-    {
-      "id": "REQ-001",
-      "title": "Persistência de Configuração (Admin ↔ Loja)",
-      "summary": "Criar e consumir API de configuração para substituir localStorage no admin/loja.",
-      "priority": "P0",
-      "status": "In Progress",
-      "owner": "Backend",
-      "dependencies": [],
-      "apis": [
-        {
-          "operationId": "getConfig",
-          "method": "GET",
-          "path": "/config"
-        },
-        {
-          "operationId": "saveConfig",
-          "method": "POST",
-          "path": "/config"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-001-GET-200",
-          "TAPI-002-POST-201",
-          "TAPI-003-POST-400"
-        ],
-        "front": [
-          "TFRONT-001-Admin-SalvarConfig-OK",
-          "TFRONT-002-Loja-CarregaConfig-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./config",
-        "docs/sprint-1-plan.md#req-001"
-      ]
-    },
-    {
-      "id": "REQ-002",
-      "title": "Produtos: Catálogo com CSV e Estoque",
-      "summary": "Expor catálogo via API; manter import/export CSV no admin, consumido pela loja.",
-      "priority": "P0",
-      "status": "In Progress",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-001"
-      ],
-      "apis": [
-        {
-          "operationId": "listProducts",
-          "method": "GET",
-          "path": "/products"
-        },
-        {
-          "operationId": "createOrUpdateProducts",
-          "method": "POST",
-          "path": "/products/bulk"
-        },
-        {
-          "operationId": "getProduct",
-          "method": "GET",
-          "path": "/products/{id}"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-010-GET-200",
-          "TAPI-011-POST-201",
-          "TAPI-012-POST-400",
-          "TAPI-013-GET-404"
-        ],
-        "front": [
-          "TFRONT-010-Admin-ImportCSV-OK",
-          "TFRONT-011-Admin-ExportCSV-OK",
-          "TFRONT-012-Loja-ListaProdutos-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./products",
-        "backend/docs/openapi.yaml#paths./products/bulk",
-        "docs/sprint-1-plan.md#req-002"
-      ]
-    },
-    {
-      "id": "REQ-003",
-      "title": "Insumos & Fornecedores (Custo Unitário)",
-      "summary": "API de insumos/embalagens com custo unitário para cálculo de receitas.",
-      "priority": "P1",
-      "status": "Planned",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-001"
-      ],
-      "apis": [
-        {
-          "operationId": "listIngredients",
-          "method": "GET",
-          "path": "/ingredients"
-        },
-        {
-          "operationId": "upsertIngredient",
-          "method": "POST",
-          "path": "/ingredients"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-020-GET-200",
-          "TAPI-021-POST-201",
-          "TAPI-022-POST-400"
-        ],
-        "front": [
-          "TFRONT-020-Admin-Insumos-CRUD-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./ingredients",
-        "docs/sprint-1-plan.md#req-003"
-      ]
-    },
-    {
-      "id": "REQ-004",
-      "title": "Receitas & Precificação (Markup, Perda, Versões)",
-      "summary": "API para receitas com itens, perda, markup e versionamento; aplica preço sugerido no produto.",
-      "priority": "P1",
-      "status": "Planned",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-003"
-      ],
-      "apis": [
-        {
-          "operationId": "listRecipes",
-          "method": "GET",
-          "path": "/recipes"
-        },
-        {
-          "operationId": "upsertRecipe",
-          "method": "POST",
-          "path": "/recipes"
-        },
-        {
-          "operationId": "newRecipeVersion",
-          "method": "POST",
-          "path": "/recipes/{id}/version"
-        },
-        {
-          "operationId": "applyRecipeToProduct",
-          "method": "POST",
-          "path": "/recipes/{id}/apply"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-030-GET-200",
-          "TAPI-031-POST-201",
-          "TAPI-032-POST-400",
-          "TAPI-033-POST-409"
-        ],
-        "front": [
-          "TFRONT-030-Admin-Receitas-CRUD-OK",
-          "TFRONT-031-Admin-Receitas-AplicarPreco-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./recipes",
-        "docs/sprint-1-plan.md#req-004"
-      ]
-    },
-    {
-      "id": "REQ-005",
-      "title": "Produção (Baixa Insumos / Credita Estoque)",
-      "summary": "API para registrar produção: consome insumos (com perda) e credita estoque do produto.",
-      "priority": "P1",
-      "status": "Planned",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-003",
-        "REQ-004"
-      ],
-      "apis": [
-        {
-          "operationId": "produceBatch",
-          "method": "POST",
-          "path": "/productions"
-        },
-        {
-          "operationId": "listProductions",
-          "method": "GET",
-          "path": "/productions"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-040-POST-201",
-          "TAPI-041-POST-400",
-          "TAPI-042-GET-200"
-        ],
-        "front": [
-          "TFRONT-040-Admin-Producao-Registrar-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./productions",
-        "docs/sprint-1-plan.md#req-005"
-      ]
-    },
-    {
-      "id": "REQ-006",
-      "title": "Pedidos (Checkout e Status)",
-      "summary": "API para pedidos com itens, desconto, total; integra com loja pública e admin.",
-      "priority": "P0",
-      "status": "In Progress",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-001",
-        "REQ-002"
-      ],
-      "apis": [
-        {
-          "operationId": "createOrder",
-          "method": "POST",
-          "path": "/orders"
-        },
-        {
-          "operationId": "listOrders",
-          "method": "GET",
-          "path": "/orders"
-        },
-        {
-          "operationId": "updateOrder",
-          "method": "PATCH",
-          "path": "/orders/{id}"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-050-POST-201",
-          "TAPI-051-POST-400",
-          "TAPI-052-GET-200",
-          "TAPI-053-PATCH-200",
-          "TAPI-054-PATCH-404"
-        ],
-        "front": [
-          "TFRONT-050-Loja-CheckoutWhatsApp-OK",
-          "TFRONT-051-Admin-Pedidos-EditarStatus-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./orders",
-        "backend/docs/openapi.yaml#paths./orders/{id}",
-        "docs/sprint-1-plan.md#req-006"
-      ]
-    },
-    {
-      "id": "REQ-007",
-      "title": "Clientes (Tags, Histórico)",
-      "summary": "API de clientes com histórico de pedidos e tags.",
-      "priority": "P2",
-      "status": "Planned",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-006"
-      ],
-      "apis": [
-        {
-          "operationId": "listCustomers",
-          "method": "GET",
-          "path": "/customers"
-        },
-        {
-          "operationId": "upsertCustomer",
-          "method": "POST",
-          "path": "/customers"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-060-GET-200",
-          "TAPI-061-POST-201",
-          "TAPI-062-POST-400"
-        ],
-        "front": [
-          "TFRONT-060-Admin-Clientes-CRUD-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./customers",
-        "docs/sprint-1-plan.md#req-007"
-      ]
-    },
-    {
-      "id": "REQ-008",
-      "title": "Avaliações (Moderação)",
-      "summary": "API para avaliações com status pendente/aprovado/rejeitado; vínculo a produtos.",
-      "priority": "P3",
-      "status": "Planned",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-002"
-      ],
-      "apis": [
-        {
-          "operationId": "listReviews",
-          "method": "GET",
-          "path": "/reviews"
-        },
-        {
-          "operationId": "upsertReview",
-          "method": "POST",
-          "path": "/reviews"
-        },
-        {
-          "operationId": "moderateReview",
-          "method": "PATCH",
-          "path": "/reviews/{id}/moderate"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-070-GET-200",
-          "TAPI-071-POST-201",
-          "TAPI-072-PATCH-200",
-          "TAPI-073-PATCH-404"
-        ],
-        "front": [
-          "TFRONT-070-Admin-Avaliacoes-Moderacao-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./reviews",
-        "docs/sprint-1-plan.md#req-008"
-      ]
-    },
-    {
-      "id": "REQ-009",
-      "title": "Autenticação Simples (Perfis)",
-      "summary": "Implementar auth simples e perfis; restringir ações no admin conforme perfil.",
-      "priority": "P0",
-      "status": "In Progress",
-      "owner": "Backend",
-      "dependencies": [
-        "REQ-001"
-      ],
-      "apis": [
-        {
-          "operationId": "login",
-          "method": "POST",
-          "path": "/auth/login"
-        },
-        {
-          "operationId": "me",
-          "method": "GET",
-          "path": "/auth/me"
-        }
-      ],
-      "tests": {
-        "api": [
-          "TAPI-080-POST-200",
-          "TAPI-081-POST-400",
-          "TAPI-082-GET-401"
-        ],
-        "front": [
-          "TFRONT-080-Admin-Login-Perfis-OK",
-          "TFRONT-081-Admin-Restricoes-UI-OK"
-        ]
-      },
-      "docs": [
-        "backend/docs/openapi.yaml#paths./auth/login",
-        "backend/docs/openapi.yaml#paths./auth/me",
-        "docs/sprint-1-plan.md#req-009"
-      ]
-    },
-    {
-      "id": "REQ-010",
-      "title": "CI/CD & Coverage (Relatórios)",
-      "summary": "Pipeline rodando testes Back/Front, com geração de coverage e publicação de relatórios.",
-      "priority": "P0",
-      "status": "Planned",
-      "owner": "DevOps",
-      "dependencies": [
-        "REQ-001",
-        "REQ-002",
-        "REQ-006"
-      ],
-      "apis": [],
-      "tests": {
-        "api": [],
-        "front": []
-      },
-      "docs": [
-        "devops/ci/*",
-        "reports/coverage/*",
-        "docs/sprint-1-plan.md#req-010"
-      ]
-    }
-  ]
+  "guidelines": {
+    "idSuffixPolicy": "TAPI-* deve terminar com -VERB-STATUS (ex.: -POST-201). TFRONT-* com -OK ou código de erro.",
+    "restPolicy": "Usar caminhos REST estritos: PATCH /resource/{id}. Operações em lote devem usar /resource/bulk.",
+    "errorSchema": "Todas as respostas de erro devem seguir { message: string, issues?: string[] } com status 400/401/403/404/409.",
+    "coveragePolicy": "Back e Front devem manter cobertura ≥90% linhas / ≥80% branches. Gates informativos até Sprint 2."
+  }
 }
